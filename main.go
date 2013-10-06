@@ -5,12 +5,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/steakknife/Golang-Koblitz-elliptic-curve-DSA-library/bitelliptic"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -30,29 +32,77 @@ type Response struct {
 }
 
 func main() {
+	firstWord := flag.String("first-word", "", "First word to start scanning")
+	firstLetter := flag.String("first-letter", "", "First letter to start scanning")
+	lastLetter := flag.String("last-letter", "", "First letter to stop scanning")
+	frequency := flag.String("frequency", "1333ms", "Check sleep duration")
+	flag.Parse()
+
 	file, err := os.Open("words.txt")
 	if err != nil {
 		panic(err)
 	}
 
-	allRestulsFile, err := os.Create("all.csv")
+	pid := strconv.Itoa(os.Getpid())
+	err = os.Mkdir(pid, os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
 
-	usedRestulsFile, err := os.Create("used.csv")
+	configFile, err := os.Create(pid + "/conf")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Fprintln(configFile, "First Word: "+*firstWord)
+	fmt.Fprintln(configFile, "First Letter: "+*firstLetter)
+	fmt.Fprintln(configFile, "Last Letter: "+*lastLetter)
+	fmt.Fprintln(configFile, "Frequency: "+*frequency)
+
+	allRestulsFile, err := os.Create(pid + "/all.csv")
 	if err != nil {
 		panic(err)
 	}
 
-	activeRestulsFile, err := os.Create("actve.csv")
+	usedRestulsFile, err := os.Create(pid + "/used.csv")
+	if err != nil {
+		panic(err)
+	}
+
+	activeRestulsFile, err := os.Create(pid + "/actve.csv")
 	if err != nil {
 		panic(err)
 	}
 
 	scanner := bufio.NewScanner(file)
+
+	if *firstWord != "" {
+		for scanner.Scan() {
+			if scanner.Text() == *firstWord {
+				break
+			}
+		}
+	}
+
+	if *firstLetter != "" {
+		for scanner.Scan() {
+			if []rune(scanner.Text())[0] == []rune(*firstLetter)[0] {
+				break
+			}
+		}
+	}
+
+	sleepDuration, err := time.ParseDuration(*frequency)
+	if err != nil {
+		panic(err)
+	}
+
 	for scanner.Scan() {
 		word := scanner.Text()
+
+		if *lastLetter != "" && []rune(word)[0] == []rune(*lastLetter)[0] {
+			break
+		}
+
 		privateKey := generatePrivateKeyFromString(word)
 		publicKey := generatePublicKey(privateKey)
 		address := generateHashFromPublicKey(publicKey)
@@ -70,7 +120,7 @@ func main() {
 			recordAddressInfo(activeRestulsFile, addressInfo)
 		}
 
-		time.Sleep(1333 * time.Millisecond)
+		time.Sleep(sleepDuration)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -97,7 +147,8 @@ func generatePublicKey(privateKey []byte) []byte {
 
 func generateHashFromPublicKey(publicKey []byte) string {
 	publicKeyString := hex.EncodeToString(publicKey)
-	resp, err := http.Get("http://blockchain.info/q/hashpubkey/" + publicKeyString)
+	//resp, err := http.Get("http://blockchain.info/q/hashpubkey/" + publicKeyString)
+	resp, err := http.Get("http://blockexplorer.com/q/hashpubkey/" + publicKeyString)
 	if err != nil {
 		panic(err)
 	}
