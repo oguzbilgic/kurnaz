@@ -123,14 +123,8 @@ func main() {
 		panic(err)
 	}
 }
-
 func recordAddressInfo(writer io.Writer, addressInfo *AddressInfo) {
 	fmt.Fprintf(writer, "%v, %v, %v, %v, %v\n", addressInfo.Key, addressInfo.Address, addressInfo.Word, addressInfo.TotalReceived, addressInfo.FinalBalance)
-}
-
-func generateHash160FromPublicKey(publicKey []byte) string {
-	btcAddress := btc.NewAddrFromPubkey(publicKey, 0)
-	return hex.EncodeToString(btcAddress.Hash160[:])
 }
 
 // Using Blockexplorer's api
@@ -164,9 +158,9 @@ func newAddressInfoFromWord(word string) *AddressInfo {
 		panic(err)
 	}
 
-	hash := generateHash160FromPublicKey(publicKey)
+	address := btc.NewAddrFromPubkey(publicKey, btc.ADDRVER_BTC).String()
 
-	resp, err := http.Get("http://blockchain.info/address/" + hash + "?format=json")
+	resp, err := http.Get("http://blockchain.info/address/" + address + "?format=json")
 	if err != nil {
 		panic(err)
 	}
