@@ -128,12 +128,6 @@ func recordAddressInfo(writer io.Writer, addressInfo *AddressInfo) {
 	fmt.Fprintf(writer, "%v, %v, %v, %v, %v\n", addressInfo.Key, addressInfo.Address, addressInfo.Word, addressInfo.TotalReceived, addressInfo.FinalBalance)
 }
 
-func generatePrivateKeyFromString(word string) []byte {
-	hash := sha256.New()
-	hash.Write([]byte(word))
-	return hash.Sum(nil)
-}
-
 func generateHash160FromPublicKey(publicKey []byte) string {
 	btcAddress := btc.NewAddrFromPubkey(publicKey, 0)
 	return hex.EncodeToString(btcAddress.Hash160[:])
@@ -158,7 +152,12 @@ func generateHashFromPublicKey(publicKey []byte) string {
 }
 
 func newAddressInfoFromWord(word string) *AddressInfo {
-	privateKey := generatePrivateKeyFromString(word)
+	sha256Hash := sha256.New()
+	_, err := sha256Hash.Write([]byte(word))
+	if err != nil {
+		panic(err)
+	}
+	privateKey := sha256Hash.Sum(nil)
 
 	publicKey, err := btc.PublicFromPrivate(privateKey, false)
 	if err != nil {
