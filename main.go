@@ -32,13 +32,14 @@ type Response struct {
 }
 
 func main() {
+	fileName := flag.String("file", "words.txt", "Path of the file containing words")
 	firstWord := flag.String("first-word", "", "First word to start scanning")
 	firstLetter := flag.String("first-letter", "", "First letter to start scanning")
 	lastLetter := flag.String("last-letter", "", "First letter to stop scanning")
 	frequency := flag.String("frequency", "1333ms", "Check sleep duration")
 	flag.Parse()
 
-	file, err := os.Open("words.txt")
+	file, err := os.Open(*fileName)
 	if err != nil {
 		panic(err)
 	}
