@@ -166,33 +166,30 @@ func generateHashFromPublicKey(publicKey []byte) string {
 	return string(hash)
 }
 
-func newAddressInfoFromHash(addressHash string) *AddressInfo {
-	resp, err := http.Get("http://blockchain.info/address/" + addressHash + "?format=json")
+func newAddressInfoFromWord(word string) *AddressInfo {
+	privateKey := generatePrivateKeyFromString(word)
+	publicKey := generatePublicKey(privateKey)
+	hash := generateHash160FromPublicKey(publicKey)
+
+	resp, err := http.Get("http://blockchain.info/address/" + hash + "?format=json")
 	if err != nil {
 		panic(err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
 
 	var addressInfo AddressInfo
-
 	err = json.Unmarshal(body, &addressInfo)
 	if err != nil {
 		panic(err)
 	}
 
-	return &addressInfo
-}
-
-func newAddressInfoFromWord(word string) *AddressInfo {
-	privateKey := generatePrivateKeyFromString(word)
-	publicKey := generatePublicKey(privateKey)
-	hash := generateHash160FromPublicKey(publicKey)
-
-	addressInfo := newAddressInfoFromHash(hash)
 	addressInfo.Word = word
 	addressInfo.Key = hex.EncodeToString(privateKey)
 
-	return addressInfo
+	return &addressInfo
 }
