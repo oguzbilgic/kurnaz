@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/piotrnar/gocoin/btc"
 	"github.com/steakknife/Golang-Koblitz-elliptic-curve-DSA-library/bitelliptic"
 	"io"
 	"io/ioutil"
@@ -106,7 +107,7 @@ func main() {
 
 		privateKey := generatePrivateKeyFromString(word)
 		publicKey := generatePublicKey(privateKey)
-		address := generateHashFromPublicKey(publicKey)
+		address := generateHash160FromPublicKey(publicKey)
 		addressInfo := newAddress(address)
 		addressInfo.Word = word
 		addressInfo.Key = hex.EncodeToString(privateKey)
@@ -146,6 +147,12 @@ func generatePublicKey(privateKey []byte) []byte {
 	return bitcurve.Marshal(x, y)
 }
 
+func generateHash160FromPublicKey(publicKey []byte) string {
+	btcAddress := btc.NewAddrFromPubkey(publicKey, 0)
+	return hex.EncodeToString(btcAddress.Hash160[:])
+}
+
+// Using Blockexplorer's api
 func generateHashFromPublicKey(publicKey []byte) string {
 	publicKeyString := hex.EncodeToString(publicKey)
 	//resp, err := http.Get("http://blockchain.info/q/hashpubkey/" + publicKeyString)
