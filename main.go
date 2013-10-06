@@ -134,15 +134,6 @@ func generatePrivateKeyFromString(word string) []byte {
 	return hash.Sum(nil)
 }
 
-func generatePublicKey(privateKey []byte) []byte {
-	publicKey, err := btc.PublicFromPrivate(privateKey, false)
-	if err != nil {
-		panic(err)
-	}
-
-	return publicKey
-}
-
 func generateHash160FromPublicKey(publicKey []byte) string {
 	btcAddress := btc.NewAddrFromPubkey(publicKey, 0)
 	return hex.EncodeToString(btcAddress.Hash160[:])
@@ -168,7 +159,12 @@ func generateHashFromPublicKey(publicKey []byte) string {
 
 func newAddressInfoFromWord(word string) *AddressInfo {
 	privateKey := generatePrivateKeyFromString(word)
-	publicKey := generatePublicKey(privateKey)
+
+	publicKey, err := btc.PublicFromPrivate(privateKey, false)
+	if err != nil {
+		panic(err)
+	}
+
 	hash := generateHash160FromPublicKey(publicKey)
 
 	resp, err := http.Get("http://blockchain.info/address/" + hash + "?format=json")
