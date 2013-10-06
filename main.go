@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/piotrnar/gocoin/btc"
-	"github.com/steakknife/Golang-Koblitz-elliptic-curve-DSA-library/bitelliptic"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -105,12 +104,7 @@ func main() {
 			break
 		}
 
-		privateKey := generatePrivateKeyFromString(word)
-		publicKey := generatePublicKey(privateKey)
-		address := generateHash160FromPublicKey(publicKey)
-		addressInfo := newAddress(address)
-		addressInfo.Word = word
-		addressInfo.Key = hex.EncodeToString(privateKey)
+		addressInfo := newAddressInfoFromWord(word)
 
 		recordAddressInfo(allRestulsFile, addressInfo)
 
@@ -141,10 +135,12 @@ func generatePrivateKeyFromString(word string) []byte {
 }
 
 func generatePublicKey(privateKey []byte) []byte {
-	bitcurve := bitelliptic.S256()
+	publicKey, err := btc.PublicFromPrivate(privateKey, false)
+	if err != nil {
+		panic(err)
+	}
 
-	x, y := bitcurve.ScalarBaseMult(privateKey)
-	return bitcurve.Marshal(x, y)
+	return publicKey
 }
 
 func generateHash160FromPublicKey(publicKey []byte) string {
@@ -170,7 +166,7 @@ func generateHashFromPublicKey(publicKey []byte) string {
 	return string(hash)
 }
 
-func newAddress(addressHash string) *AddressInfo {
+func newAddressInfoFromHash(addressHash string) *AddressInfo {
 	resp, err := http.Get("http://blockchain.info/address/" + addressHash + "?format=json")
 	if err != nil {
 		panic(err)
@@ -187,4 +183,16 @@ func newAddress(addressHash string) *AddressInfo {
 	}
 
 	return &addressInfo
+}
+
+func newAddressInfoFromWord(word string) *AddressInfo {
+	privateKey := generatePrivateKeyFromString(word)
+	publicKey := generatePublicKey(privateKey)
+	hash := generateHash160FromPublicKey(publicKey)
+
+	addressInfo := newAddressInfoFromHash(hash)
+	addressInfo.Word = word
+	addressInfo.Key = hex.EncodeToString(privateKey)
+
+	return addressInfo
 }
